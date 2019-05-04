@@ -22,6 +22,7 @@ const char *OTAPassword = "esp8266";
 #define LED_RED     14
 #define LED_GREEN   12
 #define LED_BLUE    13
+#define WOL         15
 
 const char* mdnsName = "led-lamp";
 
@@ -30,6 +31,7 @@ void setup() {
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
+  pinMode(WOL, OUTPUT);
 
   Serial.begin(115200);
   delay(10);
@@ -46,7 +48,7 @@ void setup() {
   startMDNS();
 
   startServer();
-}
+} // END SETUP
 
 // LOOP
 bool rainbow = false;
@@ -68,32 +70,34 @@ void loop() {
       prevMillis = millis();
     }
   }
-}
+} // END LOOP
 
-// SETUP FUNCTIONS
+// SETUP
 void startWiFi() {
   WiFi.softAP(ssid, password);
   Serial.print("Access Point \"");
   Serial.print(ssid);
-  Serial.println("\" started\r\n");
+  Serial.println("\" started.\r\n");
 
   wifiMulti.addAP("ssid_from_AP_1", "your_password_for_AP_1");
   wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
   wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
 
-  Serial.println("Connecting");
+  Serial.print("Connecting to a WIFI station ");
   while (wifiMulti.run() != WL_CONNECTED && WiFi.softAPgetStationNum() < 1) {
     delay(250);
     Serial.print('.');
   }
   Serial.println("\r\n");
+
   if(WiFi.softAPgetStationNum() == 0) {      // esp is connected to an AP
-    Serial.print("Connected to ");
-    Serial.println(WiFi.SSID());
+    Serial.print("Connected to \"");
+    Serial.print(WiFi.SSID());
+    Serial.println(""\".");
     Serial.print("IP address:\t");
     Serial.print(WiFi.localIP());
   } else {                                   // station is connected to the esp AP
-    Serial.print("Station connected to ESP8266 AP");
+    Serial.print("Station connected to esp8266 AP");
   }
   Serial.println("\r\n");
 }
@@ -103,7 +107,7 @@ void startOTA() {
   ArduinoOTA.setPassword(OTAPassword);
 
   ArduinoOTA.onStart([]() {
-    Serial.println("Start");
+    Serial.println("Start.");
     // turn off LEDs
     digitalWrite(LED_RED, 0);
     digitalWrite(LED_GREEN, 0);
@@ -111,7 +115,7 @@ void startOTA() {
   });
 
   ArduinoOTA.onEnd([]() {
-    Serial.println("\r\nEnd");
+    Serial.println("\r\nEnd.");
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -128,18 +132,19 @@ void startOTA() {
   });
 
   ArduinoOTA.begin();
-  Serial.println("OTA ready\r\n");
+  Serial.println("OTA ready.\r\n");
 }
 
 void startSPIFFS() {
   SPIFFS.begin();
-  Serial.println("SPIFFS started. Contents:");
+  Serial.println("SPIFFS started.");
+  Serial.println("Files:");
   {
     Dir dir = SPIFFS.openDir("/");
     while (dir.next()) {
       String fileName = dir.fileName();
       size_t fileSize = dir.fileSize();
-      Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
+      Serial.printf("\t%s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
     }
     Serial.printf("\n");
   }
@@ -147,39 +152,92 @@ void startSPIFFS() {
 
 void startWebSocket() {
   webSocket.begin();
-  webSocket.onEvent(webSocketEvent);
+  webSocket.onEvent(onWebSocketEvent);
   Serial.println("WebSocket server started.");
 }
 
 void startMDNS() {
   MDNS.begin(mdnsName);
-  Serial.print("mDNS responder started: http://");
+  Serial.print("mDNS started at http://");
   Serial.print(mdnsName);
   Serial.println(".local");
 }
 
 void startServer() {
-  server.on("/edit.html",  HTTP_POST, []() {
+  server.on("/upload.html",  HTTP_POST, []() {
     server.send(200, "text/plain", "");
   }, handleFileUpload);
 
-  server.onNotFound(handleNotFound);
+  server.onNotFound(handleFileRequest);        // check if the file exists in the flash memory (SPIFFS), if so, send it
 
   server.begin();
   Serial.println("HTTP server started.");
-}
+  Serial.println("-------------------");
+} // END SETUP
 
 // SERVER HANDLERS
-void handleNotFound() {
-  if(!handleFileRead(server.uri())){          // check if the file exists in the flash memory (SPIFFS), if so, send it
-    server.send(404, "text/plain", "404: File Not Found");
+void handleFileRequest() {
+  if(!handleFileRead(server.uri())){
+    server.send(404, "text/plain", "404: File not found");
   }
 }
 
+void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
+  switch(type) {
+    case WStype_DISCONNECTED:
+      Serial.printf("[%u] Disconnected.\n", num);
+      break;
+
+    case WStype_CONNECTED: {
+        IPAddress ip = webSocket.remoteIP(num);
+        Serial.printf("[%u] Connected from %d.%d.%d.%d, requested url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+        rainbow = false;
+      }
+      break;
+
+    case WStype_TEXT:
+      Serial.printf("[%u] GET payload: %s\n", num, payload);
+      handlePayload(payload);
+      break;
+  }
+}
+
+void handlePayload(uint8_t * payload) {
+  switch(payload[0]) {
+    case '#':
+      uint32_t rgb = (uint32_t) strtol((const char *) &payload[1], NULL, 16);
+      int r = ((rgb >> 20) & 0x3FF);                     // 10 bits per color, so R: bits 20-29
+      int g = ((rgb >> 10) & 0x3FF);                     // G: bits 10-19
+      int b = rgb & 0x3FF;                               // B: bits  0-9
+
+      analogWrite(LED_RED, r);
+      analogWrite(LED_GREEN, g);
+      analogWrite(LED_BLUE, b);
+      break;
+
+    case 'R':
+      rainbow = true;
+      break;
+
+    case 'N':
+      rainbow = false;
+      break;
+
+    case 'W':
+      digitalWrite(WOL, HIGH);
+      delay(1000);
+      digitalWrite(WOL, LOW);
+      break;
+  }
+} // END SERVER HANDLERS
+
+// FILE SYSTEM
 bool handleFileRead(String path) {
   Serial.println("handleFileRead: " + path);
   if (path.endsWith("/")) {
     path += "index.html";
+  } else if (path.endsWith("upload") || path.endsWith("wol")) {
+    path += ".html";
   }
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
@@ -193,7 +251,7 @@ bool handleFileRead(String path) {
     Serial.println(String("\tSent file: ") + path);
     return true;
   }
-  Serial.println(String("\tFile Not Found: ") + path);
+  Serial.println(String("\tFile not found: ") + path);
   return false;
 }
 
@@ -230,43 +288,9 @@ void handleFileUpload() {
       server.send(500, "text/plain", "500: couldn't create file");
     }
   }
-}
+} // END FILE SYSTEM
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
-  switch (type) {
-
-    case WStype_DISCONNECTED:
-      Serial.printf("[%u] Disconnected!\n", num);
-      break;
-
-    case WStype_CONNECTED: {
-        IPAddress ip = webSocket.remoteIP(num);
-        Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-        rainbow = false;
-      }
-      break;
-
-    case WStype_TEXT:
-      Serial.printf("[%u] get Text: %s\n", num, payload);
-      if (payload[0] == '#') {
-        uint32_t rgb = (uint32_t) strtol((const char *) &payload[1], NULL, 16);
-        int r = ((rgb >> 20) & 0x3FF);                     // 10 bits per color, so R: bits 20-29
-        int g = ((rgb >> 10) & 0x3FF);                     // G: bits 10-19
-        int b = rgb & 0x3FF;                               // B: bits  0-9
-
-        analogWrite(LED_RED, r);
-        analogWrite(LED_GREEN, g);
-        analogWrite(LED_BLUE, b);
-      } else if (payload[0] == 'R') {
-        rainbow = true;
-      } else if (payload[0] == 'N') {
-        rainbow = false;
-      }
-      break;
-  }
-}
-
-//HELPER FUNCTIONS
+// GENERIC
 String formatBytes(size_t bytes) {
   if (bytes < 1024) {
     return String(bytes) + "B";
@@ -284,8 +308,9 @@ String getContentType(String filename) {
   else if (filename.endsWith(".ico")) return "image/x-icon";
   else if (filename.endsWith(".gz")) return "application/x-gzip";
   return "text/plain";
-}
+} // END GENERIC
 
+// LED RGB
 void setHue(int hue) { // Set the RGB LED to a given hue (color) (0° = Red, 120° = Green, 240° = Blue)
   hue %= 360;                   // hue is an angle between 0 and 359°
   float radH = hue*3.142/180;   // Convert degrees to radians
@@ -313,4 +338,4 @@ void setHue(int hue) { // Set the RGB LED to a given hue (color) (0° = Red, 120
   analogWrite(LED_RED, r);
   analogWrite(LED_GREEN, g);
   analogWrite(LED_BLUE, b);
-}
+} // END LED RGB
