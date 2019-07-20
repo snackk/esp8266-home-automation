@@ -28,10 +28,14 @@ const char* mdnsName = "led-lamp";
 
 // SETUP
 void setup() {
+  //LED PIN SETUP
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
+
+  //WOL PIN SETUP
   pinMode(WOL, OUTPUT);
+  digitalWrite(WOL, LOW);
 
   Serial.begin(115200);
   delay(10);
@@ -225,7 +229,7 @@ void handlePayload(uint8_t * payload) {
 
     case 'W':
       digitalWrite(WOL, HIGH);
-      delay(1000);
+      delay(300);
       digitalWrite(WOL, LOW);
       break;
   }
