@@ -1,12 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-const char* WIFI_SSID = "snackkster";
-const char* WIFI_PASSWORD = "maybegofuckyourself026";
+const char* WIFI_SSID = "ssid";
+const char* WIFI_PASSWORD = "pass";
 
-const char* MQTT_SERVER = "farmer.cloudmqtt.com";
-const char * MQTT_USERNAME = "unchrdkg";
-const char * MQTT_PASSWORD = "DKFrYaiG5nEX";
+const char* MQTT_SERVER = "server";
+const char * MQTT_USERNAME = "user";
+const char * MQTT_PASSWORD = "pass";
 const String MQTT_HOSTNAME  = "snackkmedia-iot";
 const char * MQTT_COMMAND_TOPIC = "wol/set";
 const int MQTT_PORT = 18345;
