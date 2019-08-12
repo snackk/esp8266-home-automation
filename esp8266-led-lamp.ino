@@ -33,7 +33,7 @@ void setup() {
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
 
-  //WOL PIN SETUP
+  //LED PIN SETUP
   pinMode(WOL, OUTPUT);
   digitalWrite(WOL, LOW);
 
