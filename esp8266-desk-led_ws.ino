@@ -6,6 +6,20 @@
 #include <FS.h>
 #include <WebSocketsServer.h>
 
+#define LED_RED     14
+#define LED_GREEN   12
+#define LED_BLUE    13
+
+#define WOL         15
+
+const char *WIFI_SSID = "desk-led";
+const char *WIFI_PASSWORD = "password";
+
+const char *OTA_NAME = "desk-led";
+const char *OTA_PASSWORD = "password";
+
+const char* MDNS_NAME = "desk-led";
+
 ESP8266WiFiMulti wifiMulti;
 
 ESP8266WebServer server(80);
@@ -13,27 +27,13 @@ WebSocketsServer webSocket(81);
 
 File fsUploadFile;
 
-const char *ssid = "led-lamp";
-const char *password = "test1234";
-
-const char *OTAName = "esp8266";
-const char *OTAPassword = "esp8266";
-
-#define LED_RED     14
-#define LED_GREEN   12
-#define LED_BLUE    13
-#define WOL         15
-
-const char* mdnsName = "led-lamp";
-
-// SETUP
 void setup() {
-  //LED PIN SETUP
+  //LED
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
 
-  //LED PIN SETUP
+  //WOL
   pinMode(WOL, OUTPUT);
   digitalWrite(WOL, LOW);
 
@@ -52,7 +52,7 @@ void setup() {
   startMDNS();
 
   startServer();
-} // END SETUP
+}
 
 // LOOP
 bool rainbow = false;
@@ -78,9 +78,9 @@ void loop() {
 
 // SETUP
 void startWiFi() {
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Access Point \"");
-  Serial.print(ssid);
+  Serial.print(WIFI_SSID);
   Serial.println("\" started.\r\n");
 
   wifiMulti.addAP("ssid_from_AP_1", "your_password_for_AP_1");
@@ -107,8 +107,8 @@ void startWiFi() {
 }
 
 void startOTA() {
-  ArduinoOTA.setHostname(OTAName);
-  ArduinoOTA.setPassword(OTAPassword);
+  ArduinoOTA.setHostname(OTA_NAME);
+  ArduinoOTA.setPassword(OTA_PASSWORD);
 
   ArduinoOTA.onStart([]() {
     Serial.println("Start.");
@@ -161,9 +161,9 @@ void startWebSocket() {
 }
 
 void startMDNS() {
-  MDNS.begin(mdnsName);
+  MDNS.begin(MDNS_NAME);
   Serial.print("mDNS started at http://");
-  Serial.print(mdnsName);
+  Serial.print(MDNS_NAME);
   Serial.println(".local");
 }
 

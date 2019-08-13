@@ -23,11 +23,11 @@ The wifi setup creates a single AP and tries to connect to several pre-defined s
 
 ### <a name="ota"></a> OTA
 
-It's possible to do OTA (Over The Air updates), instead of flashing the code on the Arduino IDE.
+It's possible to do OTA (Over The Air updates), instead of flashing the code locally on the Arduino IDE.
 
 ### <a name="spiffs"></a> SPIFFS
 
-File System.
+A File System capable of storing several files. This is used to serve HTML pages, files can be stored in a compressed to save some space.
 
 ### <a name="websocket"></a> WebSocket
 
