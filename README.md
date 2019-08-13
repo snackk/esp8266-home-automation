@@ -1,4 +1,4 @@
-### ESP8266 led strip with WOLish ability
+### ESP8266 Home Automation
 
 ## Overview
 
