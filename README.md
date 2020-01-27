@@ -25,6 +25,7 @@ Led Stripe RGB activated by an IoT device. Esp8266 acts as a MQTT client that co
 ## Documentation
 
 This projects might be composed on several other modules, namely [WIFI](#wifi), [OTA](#ota), [SPIFFS](#spiffs), [WebSocket](#websocket), [mDNS](#mdns).
+Most of these modules were implemented based on this [guide](https://tttapa.github.io/ESP8266/Chap01%20-%20ESP8266.html). 
 
 Any issues flashing the esp8266 should refer to the [problems](#problems) section.
 
@@ -50,6 +51,7 @@ mDNS
 
 ## <a name="problems"></a> Problems
 
-Most of the problems I faced while flashing the esp8266 nodemcu was due to wrong configuration on the Arduino IDE, that or I haven't set the esp8266 to flash mode.
+Most of the problems I faced while flashing the esp8266 nodemcu was due to wrong configuration for my specific esp8266 board on the Arduino IDE, that or I haven't set the esp8266 to flash mode.
+
 
   Written by [@snackk](https://github.com/snackk)
