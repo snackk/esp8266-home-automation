@@ -7,12 +7,21 @@ This repository contains several IoT firmwares for esp8266 based hardware.
 ### Wake on Lan
 IoT device to remotly power up a computer. This is particular useful for wireless connected computers, whose wireless card don't support the **wol** magic packet. Esp8266 acts as a MQTT client that consumes **wake up** events from a given topic, in this case 'wol/push', and shorts the power switch circuit for a brief amount of time, emulating the button switch, switching on/off the computer.
 
-<img width="451" alt="Screenshot 2020-01-27 at 22 44 09" src="https://user-images.githubusercontent.com/9936714/73220573-a9346e80-4156-11ea-9cc3-16674fdf1ef2.png">
+In the figure bellow:
+- **J1** represent the input pins where the power switch cables from the computer case must be connected to.
+- **J2** represent the output pins to connect with the motherboard power switch.
+
+<img width="451" alt="wol" src="https://user-images.githubusercontent.com/9936714/73220573-a9346e80-4156-11ea-9cc3-16674fdf1ef2.png">
 
 ### Led Stripe
 Led Stripe RGB activated by an IoT device. Esp8266 acts as a MQTT client that consumes **light events** from a given topic, in this case 'lights/push' lightning the led stripe to match the chosen color.
 
-<img width="451" alt="Screenshot 2020-01-27 at 22 44 09" src="https://user-images.githubusercontent.com/9936714/73220573-a9346e80-4156-11ea-9cc3-16674fdf1ef2.png">
+In the figure bellow:
+- **R1** should be connected to the Red pin on the led stripe.
+- **R2** should be connected to the Green pin on the led stripe.
+- **R3** should be connected to the Blue pin on the led stripe.
+
+<img width="954" alt="led" src="https://user-images.githubusercontent.com/9936714/73315732-c89bcc00-4228-11ea-8559-dd0589c574ba.png">
 
 
 ## Prerequisites
