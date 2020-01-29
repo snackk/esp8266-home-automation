@@ -3,7 +3,7 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
-#define WOL 15
+#define WOL 12
 
 const char* WIFI_SSID = "ssid";
 const char* WIFI_PASSWORD = "pass";
@@ -15,6 +15,8 @@ const String MQTT_HOSTNAME  = "snackkmedia-iot";
 const char * MQTT_COMMAND_TOPIC = "topic";
 const int MQTT_PORT = 18345;
 
+const int ALIVE_MILIS = 300;
+
 //NTP
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600);
@@ -24,14 +26,14 @@ PubSubClient client(wifiClient);
 
 unsigned long startTime;
 
+bool isDeepSleepEnabled = false;
+
 void setup() {
   startTime = micros();
 
-  //WOL
-  pinMode(WOL, OUTPUT);
-  digitalWrite(WOL, LOW);
-
   Serial.begin(115200);
+
+  pinMode(WOL, INPUT);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -49,21 +51,29 @@ void setup() {
 }
 
 void loop() {
-  unsigned long deltaTime = (micros() - startTime) / 1000000;
-  if(deltaTime < 60) {
-    if(WiFi.status() == WL_CONNECTED) {
-      if (checkMqttConnection()) {
-        client.loop();
-      }
+  if(isDeepSleepEnabled) {
+    unsigned long deltaTime = (micros() - startTime) / 1000000;
+    if(deltaTime < ALIVE_MILIS) {
+      mqqtLoop();
     } else {
-      Serial.println("Connection with MQTT broker: " + String(MQTT_SERVER) + ", failed! rc=");
-      Serial.print(client.state());
+      Serial.println("Going into deep sleep for 2 minutes.");
+      client.disconnect();
+      WiFi.disconnect();
+      ESP.deepSleep(120e6);
     }
   } else {
-    Serial.println("Going into deep sleep for 5 minutes.");
-    client.disconnect();
-    WiFi.disconnect();
-    ESP.deepSleep(300e6);
+    mqqtLoop();
+  }
+}
+
+void mqqtLoop() {
+  if(WiFi.status() == WL_CONNECTED) {
+    if (checkMqttConnection()) {
+      client.loop();
+    }
+  } else {
+    Serial.println("Connection with MQTT broker: " + String(MQTT_SERVER) + ", failed! rc=");
+    Serial.print(client.state());
   }
 }
 
@@ -91,13 +101,20 @@ void onMessage(char* topic, byte* payload, unsigned int length) {
   if(message.equals("W")) {
     pushPwr();
     timeClient.update();
-    String messageToPublish = "Last WOL command received on: " + timeClient.getFormattedTime();
+    String messageToPublish = "WOL command received at: " + timeClient.getFormattedTime();
+    client.publish(MQTT_COMMAND_TOPIC, messageToPublish.c_str(), true);  //nasty hack: last retained message must be != W
+  }
+  if(message.equals("D")) {
+    isDeepSleepEnabled != isDeepSleepEnabled;
+    timeClient.update();
+    String messageToPublish = "DeepSleep command received at: " + timeClient.getFormattedTime();
     client.publish(MQTT_COMMAND_TOPIC, messageToPublish.c_str(), true);  //nasty hack: last retained message must be != W
   }
 }
 
 void pushPwr() {
-  digitalWrite(WOL, HIGH);
-  delay(300);
+  pinMode(WOL, OUTPUT);
   digitalWrite(WOL, LOW);
+  delay(300);
+  pinMode(WOL, INPUT);
 }
