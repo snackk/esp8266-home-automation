@@ -10,8 +10,6 @@
 #define LED_GREEN   12
 #define LED_BLUE    13
 
-#define WOL         15
-
 const char *WIFI_SSID = "desk-led";
 const char *WIFI_PASSWORD = "password";
 
@@ -32,10 +30,6 @@ void setup() {
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
-
-  //WOL
-  pinMode(WOL, OUTPUT);
-  digitalWrite(WOL, LOW);
 
   Serial.begin(115200);
   delay(10);
@@ -226,12 +220,6 @@ void handlePayload(uint8_t * payload) {
     case 'N':
       rainbow = false;
       break;
-
-    case 'W':
-      digitalWrite(WOL, HIGH);
-      delay(300);
-      digitalWrite(WOL, LOW);
-      break;
   }
 } // END SERVER HANDLERS
 
@@ -240,7 +228,7 @@ bool handleFileRead(String path) {
   Serial.println("handleFileRead: " + path);
   if (path.endsWith("/")) {
     path += "index.html";
-  } else if (path.endsWith("upload") || path.endsWith("wol")) {
+  } else if (path.endsWith("upload")) {
     path += ".html";
   }
   String contentType = getContentType(path);
